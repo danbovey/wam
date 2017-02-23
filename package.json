@@ -4,7 +4,7 @@
   "description": "Automatic track mixing using the Web Audio API",
   "main": "src/index.js",
   "scripts": {
-    "test": "mocha --ui tdd --compilers js:babel-core/register"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
