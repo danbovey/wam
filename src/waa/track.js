@@ -120,7 +120,8 @@ const track = (track, context, options = {}) => {
         const mixinTime = mixoutTime - mixLengthInterval;
 
         console.log('Mixin and Mixout Position', mixinTime, mixoutTime);
-        emitter.node.gain.setValueAtTime(1.0, startTime);
+        // TODO: If it's a brand new deck, no fade in
+        emitter.node.gain.setValueAtTime(1.0, mixinTime);
         clockSchedules.mixout = clock.callbackAtTime(() => {
             emitter.emit('mixin');
         }, mixinTime);
@@ -139,15 +140,16 @@ const track = (track, context, options = {}) => {
 
                 // TODO: move to config and make it 60 seconds or max length of track
                 console.log('playbackRate', shift);
-                console.log('playbackRate will be 1.0 at ' + (startTime + 60));
-                bufferNode.playbackRate.setValueAtTime(shift, startTime);
+                console.log('playbackRate will be 1.0 at ' + (startTime + options.mixLength + 60));
+                bufferNode.playbackRate.setValueAtTime(shift, startTime + options.mixLength);
                 bufferNode.playbackRate.linearRampToValueAtTime(1.0, startTime + 60);
 
+                // TODO: if we increase the playbackRate, it's *1 not *-1
                 console.log('detune', 12 * (Math.log(shift) / Math.log(2)) * -100);
-                console.log('detune will be 1.0 at ' + (startTime + 60));
-                bufferNode.detune.value = 12 * (Math.log(shift) / Math.log(2)) * -100;
-                // bufferNode.detune.setValueAtTime(12 * (Math.log(shift) / Math.log(2)) * -100, startTime);
-                bufferNode.detune.exponentialRampToValueAtTime(1.0, startTime + 60);
+                console.log('detune will be 1.0 at ' + (startTime + options.mixLength + 60));
+                // bufferNode.detune.value = 12 * (Math.log(shift) / Math.log(2)) * -100;
+                bufferNode.detune.setValueAtTime(12 * (Math.log(shift) / Math.log(2)) * -100, startTime + options.mixLength);
+                bufferNode.detune.exponentialRampToValueAtTime(1.0, startTime + options.mixLength + 60);
             }
         }
 
@@ -270,7 +272,7 @@ const track = (track, context, options = {}) => {
             audioCurrentTime += (audioPauseTime - audioStartTime);
 
             if(end) {
-                ended();
+                // ended(); // Should be called by bufferNode.onended
             } else {
                 emitter.canResume = true;
                 emitter.emit('paused', when);

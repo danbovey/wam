@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 
+import AudioContext from './waa/audio-context';
 import bufferLoader from './waa/buffer-loader';
 import Track from './waa/track';
 
@@ -12,7 +13,7 @@ export default class AudioMixer extends EventEmitter {
         super();
 
         this._options = Object.assign(defaults, options);
-        this.context = this._options.context || new AudioContext(); // TODO: Abstract into audio-context.js
+        this.context = this._options.context || new AudioContext();
 
         this.playQueue = [];
 
@@ -85,9 +86,9 @@ export default class AudioMixer extends EventEmitter {
                     time
                 });
             });
-            track.on('mixin', () => console.log('Mixing in ' + track.track.title));
+            track.on('mixin', () => console.log('Mixing in ' + track.id));
             track.on('mixout', time => {
-                console.log('Mixing out ' + track.track.title);
+                console.log('Mixing out ' + track.id);
                 this.emit('mixout', {
                     id: track.id,
                     time
@@ -95,7 +96,11 @@ export default class AudioMixer extends EventEmitter {
             });
             track.on('ended', time => {
                 // Remove the track from the deck
-                this.tracks.splice(this.tracks.findIndex(t => track.id == t.id), 1);
+                const index = this.tracks.findIndex(t => track.id == t.id);
+                console.log('splicing', index);
+                if(index > -1) {
+                    this.tracks.splice(index, 1);
+                }
                 this.emit('trackEnd', {
                     id: track.id
                 });
