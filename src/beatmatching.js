@@ -169,7 +169,16 @@ export const calculateBPM = (context, buffer) => {
                 const first = peaks.all.sort((a, b) => a.position - b.position)[0];
                 const lastPeak = guesses[0].allPositions[guesses[0].allPositions.length - 1];
                 const mixoutPosition = lastPeak / context.sampleRate;
-                const firstPeak = first.position / context.sampleRate;
+                // const firstPeak = first.position / context.sampleRate;
+
+                let firstPeak = guesses[0].allPositions[0] / context.sampleRate;
+                const fp = firstPeak;
+                const interval = guesses[0].intervalActual / context.sampleRate;
+                while(firstPeak - interval > 0) {
+                    firstPeak -= interval;
+                }
+                console.log('first beat calculated as', firstPeak);
+                console.log('compared to first peak found as', fp);
 
                 // Top guess is Math.round(guesses[0].tempo) BPM with guesses[0].count samples
                 return {

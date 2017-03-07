@@ -66,6 +66,7 @@ const track = (track, context, options = {}) => {
             return bufferLoader(context, emitter.track.url)
                 .then(b => {
                     buffer = b;
+                    duration = buffer.duration;
 
                     emitter.emit('loaded');
 
@@ -112,7 +113,7 @@ const track = (track, context, options = {}) => {
         // TODO: The gainNode may not currently be at 1.0
         const mixoutTime = startTime + emitter.track.mixoutPosition;
         const estimatedInPosition = emitter.track.mixoutPosition - options.mixLength;
-        const interval = (emitter.track.intervalActual / context.sampleRate) + 0.001;
+        const interval = (emitter.track.intervalActual / context.sampleRate);
         let mixLengthInterval = 0;
         while((emitter.track.mixoutPosition - mixLengthInterval) - estimatedInPosition > interval) {
             mixLengthInterval += interval;
@@ -134,7 +135,7 @@ const track = (track, context, options = {}) => {
         }, mixoutTime);
 
         // Ramp the track back to it's original playback rate over time
-        if(emitter.bpm && emitter.track.bpm) {
+        if(emitter.bpm && emitter.track.bpm && emitter.bpm != emitter.track.bpm) {
             if(bufferNode.playbackRate && bufferNode.detune) {
                 const shift = emitter.bpm / emitter.track.bpm;
 
@@ -304,6 +305,17 @@ const track = (track, context, options = {}) => {
     };
 
     Object.defineProperties(emitter, {
+        currentTime: {
+            enumerable: true,
+            configurable: true,
+            get: () => {
+                if(playing) {
+                    return context.currentTime - audioStartTime + audioCurrentTime;
+                }
+
+                return audioCurrentTime;
+            }
+        },
         duration: {
             enumerable: true,
             configurable: true,
