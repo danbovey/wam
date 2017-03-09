@@ -4,7 +4,6 @@ import WAAClock from 'waaclock';
 import { BufferedPV } from '../vendor/PhaseVocoder';
 
 import { calculateBPM } from '../beatmatching';
-import { analyser as createAnalyser } from '../analyser';
 
 import bufferLoader from './buffer-loader';
 import resumeContext from './resume-context';
@@ -18,7 +17,6 @@ const track = (track, context, options = {}) => {
     // Define our Audio nodes
     let bufferNode;
     let buffer;
-    let analyser = createAnalyser(context);
     const gainNode = context.createGain();
     const pv = new BufferedPV(FRAME_SIZE);
 
@@ -54,8 +52,6 @@ const track = (track, context, options = {}) => {
     const destroyBuffer = () => {
         if(bufferNode) {
             bufferNode.disconnect();
-            analyser.stop();
-            analyser.node.disconnect();
         }
 
         emitter.emit('destroyed');
@@ -106,6 +102,7 @@ const track = (track, context, options = {}) => {
         emitter.setBPM(emitter.track.bpm);
     };
 
+    // TODO: Accept parameters like { fadeIn, fadeOut, mix, timestretch }
     emitter.scheduleEvents = () => {
         const startTime = audioStartTime - audioCurrentTime - emitter.track.firstPeak;
 
@@ -120,7 +117,7 @@ const track = (track, context, options = {}) => {
         }
         const mixinTime = mixoutTime - mixLengthInterval;
 
-        console.log('Mixin and Mixout Position', mixinTime, mixoutTime);
+        // console.log('Mixin and Mixout Position', mixinTime, mixoutTime);
         // TODO: If it's a brand new deck, no fade in
         emitter.node.gain.setValueAtTime(1.0, mixinTime);
         clockSchedules.mixout = clock.callbackAtTime(() => {
@@ -137,20 +134,21 @@ const track = (track, context, options = {}) => {
         // Ramp the track back to it's original playback rate over time
         if(emitter.bpm && emitter.track.bpm && emitter.bpm != emitter.track.bpm) {
             if(bufferNode.playbackRate && bufferNode.detune) {
-                const shift = emitter.bpm / emitter.track.bpm;
+                const playbackRate = emitter.bpm / emitter.track.bpm;
+                // console.log('playbackRate', playbackRate);
+                // console.log('playbackRate will be 1.0 at ' + (startTime + options.mixLength + options.playbackRateTween));
+                bufferNode.playbackRate.value = startTime + options.mixLength;
+                bufferNode.playbackRate.setValueAtTime(playbackRate, startTime + options.mixLength);
+                bufferNode.playbackRate.linearRampToValueAtTime(1.0, startTime + options.mixLength + options.playbackRateTween);
 
-                // TODO: move to config and make it 60 seconds or max length of track
-                console.log('playbackRate', shift);
-                console.log('playbackRate will be 1.0 at ' + (startTime + options.mixLength + 60));
-                bufferNode.playbackRate.setValueAtTime(shift, startTime + options.mixLength);
-                bufferNode.playbackRate.linearRampToValueAtTime(1.0, startTime + 60);
-
-                // TODO: if we increase the playbackRate, it's *1 not *-1
-                console.log('detune', 12 * (Math.log(shift) / Math.log(2)) * -100);
-                console.log('detune will be 1.0 at ' + (startTime + options.mixLength + 60));
-                // bufferNode.detune.value = 12 * (Math.log(shift) / Math.log(2)) * -100;
-                bufferNode.detune.setValueAtTime(12 * (Math.log(shift) / Math.log(2)) * -100, startTime + options.mixLength);
-                bufferNode.detune.exponentialRampToValueAtTime(1.0, startTime + options.mixLength + 60);
+                const detune = 12 * (Math.log(playbackRate) / Math.log(2)) * 100 * (playbackRate < 1 ? -1 : 1);
+                // console.log('detune', detune);
+                // console.log('detune will be 0 at ' + (startTime + options.mixLength + options.playbackRateTween));
+                bufferNode.detune.value = startTime + options.mixLength;
+                bufferNode.detune.setValueAtTime(detune, startTime + options.mixLength);
+                bufferNode.detune.exponentialRampToValueAtTime(0.0001, startTime + options.mixLength + options.playbackRateTween);
+            } else {
+                // TODO: Cross-browser pitch shifting using PV
             }
         }
 
@@ -175,11 +173,11 @@ const track = (track, context, options = {}) => {
     emitter.mixinAt = (mixinTime) => {
         const startTime = mixinTime - emitter.track.firstPeak;
         emitter.play(startTime);
-        console.log('will play at', startTime);
-        emitter.node.gain.setValueAtTime(0.0001, startTime);
+        // console.log('will play at', startTime);
+        emitter.node.gain.setValueAtTime(0.0001, startTime - 1); // -1 to prevent split second blast at the start of a track
         const crossfadeTime = mixinTime + (options.mixLength / 2);
         emitter.node.gain.linearRampToValueAtTime(1.0, crossfadeTime);
-        console.log('will ramp to value at', crossfadeTime);
+        // console.log('will ramp to value at', crossfadeTime);
     };
 
     emitter.cancelEvents = () => {
@@ -200,7 +198,6 @@ const track = (track, context, options = {}) => {
             if(playing) {
                 return;
             }
-
             playing = true;
 
             if(options.autoResume) {
@@ -212,37 +209,11 @@ const track = (track, context, options = {}) => {
             bufferNode = context.createBufferSource();
             bufferNode.buffer = buffer;
             bufferNode.onended = ended;
-            
-            // Try time stretching with native code
-            if(bufferNode.playbackRate && bufferNode.detune) {
-                // TODO: Already being done in scheduleEvents
-                // const shift = emitter.bpm / emitter.track.bpm;
-                // bufferNode.playbackRate.value = shift;
-                // // Convert the playback rate to cents with the semitone ratio of 2^(1/12)
-                // bufferNode.detune.value = 12 * (Math.log(shift) / Math.log(2)) * -100;
-            } else {
-                // Set up PhaseVocoder
-                // pv.set_audio_buffer(buffer);
-                // const pvProcessNode = context.createScriptProcessor(BUFFER_SIZE, 2);
-                // pvProcessNode.onaudioprocess = e => {
-                //     pv.process(e.outputBuffer);
-                // };
-            }
-
-            // Connect the nodes together
-            bufferNode.connect(analyser.node);
-            // analyser.node.connect(pvProcessNode);
-            analyser.start();
-            // pvProcessNode.connect(emitter.node);
-            analyser.node.connect(emitter.node);
-
+            bufferNode.connect(emitter.node);
             bufferNode.start(when, audioCurrentTime);
-            audioStartTime = when; // rightNow();
-
-            console.log('starting at', when, audioCurrentTime);
+            audioStartTime = when;
 
             emitter.scheduleEvents();
-
             emitter.canResume = false;
             emitter.emit('playing', when);
         };
@@ -283,6 +254,12 @@ const track = (track, context, options = {}) => {
 
     emitter.stop = (when) => {
         emitter.pause(when, true);
+    };
+
+    emitter.seek = (time) => {
+        emitter.pause();
+        audioCurrentTime = time;
+        emitter.play();
     };
 
     emitter.destroy = () => {

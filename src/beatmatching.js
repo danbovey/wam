@@ -172,13 +172,19 @@ export const calculateBPM = (context, buffer) => {
                 // const firstPeak = first.position / context.sampleRate;
 
                 let firstPeak = guesses[0].allPositions[0] / context.sampleRate;
-                const fp = firstPeak;
+                // const fp = firstPeak;
                 const interval = guesses[0].intervalActual / context.sampleRate;
+                // while(firstPeak - interval > 0) {
+                //     firstPeak -= interval;
+                // }
+                firstPeak = mixoutPosition; // Let's try going back from a known "on beat" drum hit!
                 while(firstPeak - interval > 0) {
                     firstPeak -= interval;
                 }
-                console.log('first beat calculated as', firstPeak);
-                console.log('compared to first peak found as', fp);
+                firstPeak = firstPeak + 0.01; // 0.01 seems to be the difference in Audacity
+                console.log('first beat calculated as:', firstPeak);
+                console.log('using calculated interval:', interval);
+                // console.log('compared to first peak found as', fp);
 
                 // Top guess is Math.round(guesses[0].tempo) BPM with guesses[0].count samples
                 return {
