@@ -5,6 +5,7 @@ import bufferLoader from './waa/buffer-loader';
 import Track from './waa/track';
 
 const defaults = {
+    debug: false,
     mixLength: 20,
     playbackRateTween: 60
 };
@@ -47,35 +48,38 @@ export default class AudioMixer extends EventEmitter {
     }
 
     seek(track_id, time) {
-        // TODO: Scheduled tracks need to be reset as well
-        // Something like tracks.forEach(t => t.cancelIfFuture()) then reschedule the track using track.seek below
-        const track = this.tracks.find(t => t.id == track_id);
+        let track = this.tracks.find(t => t.id == track_id);
         if(track) {
+            this.tracks.forEach(t => t.stop());
+
             track.seek(time);
+        } else {
+            throw new Error('That track could not be found');
+            // TODO: Potentially seek a track that's queued up?
+            // track = this.playQueue.find(t => t.id == track_id);
+            // if(track) {
+            //     track.seek(time);
+            // }
         }
     }
 
-    _startTrack(index = 0) {
-        const track = this.tracks[index];
-        if(track && !track.playing) {
-            if(!track.connected) {
-                this._destinations.forEach(dest => track.connect(dest));
-            }
-            track.play();
-
-            this.emit('play', track);
-        }
-    }
-
-    _scheduleNext(schedules = null) {
+    _scheduleNext(schedules = null, seek = 0) {
         if(this.tracks.length < 2 && this.playQueue[0]) {
             const track = new Track(this.playQueue[0], this.context, this._options);
-            console.log('Creating ' + track.track.title);
             track.on('loaded', () => {
                 this._destinations.forEach(dest => track.connect(dest));
             });
             track.on('analyzed', (res) => {
-                console.log('Analyzed! The next schedules are:', schedules);
+                if(this._options.debug) {
+                    console.groupCollapsed('wam - ' + track.id + ' Analyzed');
+                    console.log(res);
+                    console.groupEnd();
+                }
+
+                if(seek > 0) {
+                    track.seek(seek);
+                }
+
                 const mixinTime = schedules ? schedules.mixinTime : this.context.currentTime;
                 track.mixinAt(mixinTime);
             });
@@ -120,11 +124,15 @@ export default class AudioMixer extends EventEmitter {
 
             return track.load()
                 .then(emitter => {
+                    if(!emitter) {
+                        // TODO: Error event
+                        throw new Error('Failed to load track');
+                    }
+
                     // If possible, set the BPM of the next track
                     if(schedules && schedules.bpm) {
                         track.setBPM(schedules.bpm);
                     }
-                    console.log(emitter.track.mixoutPosition, this.context.currentTime);
                 });
         } else {
             console.log('Nothing to schedule / Not scheduling that track yet');
@@ -133,7 +141,9 @@ export default class AudioMixer extends EventEmitter {
 
     _trySchedule(track) {
         // If a track needs to be loaded up into the deck
-        if(this.tracks.length == 1) {
+        // and the current track has its schedule info
+        console.log('this.playing', this.playing);
+        if(this.playing && this.tracks.length == 1 && this.tracks[0].schedules) {
             console.log('Trying to schedule myself with previous info:', this.tracks[0].schedules);
             this._scheduleNext(this.tracks[0].schedules);
         }
@@ -172,8 +182,6 @@ export default class AudioMixer extends EventEmitter {
         this.playQueue.push(track);
 
         this._trySchedule(track);
-
-        // this.emit('added', track);
 
         return id;
     }
