@@ -184,7 +184,7 @@ export default class AudioMixer extends EventEmitter {
     remove(id) {
         const index = this._findIndex(id);
         if(index > -1) {
-            this.playQueue.remove(index, 1);
+            this.playQueue.splice(index, 1);
 
             return true;
         }
