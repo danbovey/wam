@@ -2,11 +2,12 @@ import { EventEmitter } from 'events';
 
 import AudioContext from './waa/audio-context';
 import bufferLoader from './waa/buffer-loader';
-import Track from './waa/track';
+import Track from './track';
 
 const defaults = {
     mixLength: 20,
-    playbackRateTween: 60
+    playbackRateTween: 60,
+    volume: 1.0
 };
 
 export default class AudioMixer extends EventEmitter {
@@ -70,7 +71,6 @@ export default class AudioMixer extends EventEmitter {
     _scheduleNext(schedules = null) {
         if(this.tracks.length < 2 && this.playQueue[0]) {
             const track = new Track(this.playQueue[0], this.context, this._options);
-            console.log('Creating ' + track.track.title);
             track.on('loaded', () => {
                 this._destinations.forEach(dest => track.connect(dest));
             });
