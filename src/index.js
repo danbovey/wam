@@ -25,20 +25,18 @@ export default class AudioMixer extends EventEmitter {
         this.playing = false;
     }
 
-    start() {
+    play() {
         if(this.playing == false) {
             this.playing = true;
 
             this._scheduleNext();
+        } else {
+            this.tracks.forEach(track => {
+                if(track.canResume) {
+                    track.play();
+                }
+            });
         }
-    }
-
-    play() {
-        this.tracks.forEach(track => {
-            if(track.canResume) {
-                track.play();
-            }
-        });
     }
 
     pause() {
@@ -64,7 +62,7 @@ export default class AudioMixer extends EventEmitter {
             }
             track.play();
 
-            this.emit('play', track);
+            // this.emit('play', track);
         }
     }
 
@@ -73,36 +71,21 @@ export default class AudioMixer extends EventEmitter {
             const track = new Track(this.playQueue[0], this.context, this._options);
             track.on('loaded', () => {
                 this._destinations.forEach(dest => track.connect(dest));
+                this.emit('loaded', { id: track.id, track: { duration: track.duration }});
             });
-            track.on('analyzed', (res) => {
-                console.log('Analyzed! The next schedules are:', schedules);
+            track.on('analyzed', payload => {
                 const mixinTime = schedules ? schedules.mixinTime : this.context.currentTime;
                 track.mixinAt(mixinTime);
+                this.emit('analyzed', { id: track.id, payload });
             });
             track.on('loadNext', sched => {
                 // If it exists, force a load of the first item in the queue
                 this._scheduleNext(sched);
             });
-            track.on('playing', time => {
-                this.emit('playing', {
-                    id: track.id,
-                    time
-                });
-            });
-            track.on('paused', time => {
-                this.emit('paused', {
-                    id: track.id,
-                    time
-                });
-            });
-            // track.on('mixin', () => console.log('Mixing in ' + track.id));
-            track.on('mixout', time => {
-                // console.log('Mixing out ' + track.id);
-                this.emit('mixout', {
-                    id: track.id,
-                    time
-                });
-            });
+            track.on('playing', time => this.emit('playing', { id: track.id, time }));
+            track.on('paused', time => this.emit('paused', { id: track.id, time }));
+            track.on('mixin', time => this.emit('mixin', { id: track.id, time }));
+            track.on('mixout', time => this.emit('mixout', { id: track.id, time }));
             track.on('ended', time => {
                 // Remove the track from the deck
                 const index = this.tracks.findIndex(t => track.id == t.id);
