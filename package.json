@@ -1,6 +1,6 @@
 {
   "name": "webaudiomixer",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Automatic track mixing using the Web Audio API",
   "main": "src/index.js",
   "scripts": {
