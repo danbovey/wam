@@ -102,8 +102,7 @@ export default class Track extends EventEmitter {
      */
     _scheduleEvents() {
         console.log({ audioStartTime: this._audioStartTime, audioCurrentTime: this._audioCurrentTime });
-        const startTime = this._audioStartTime - this._audioCurrentTime; // - this.track.firstPeak;
-        console.log('giving a startTime of', startTime);
+        const startTime = this._audioStartTime; // - this._audioCurrentTime - this.track.firstPeak;
         const interval = (this.track.intervalActual / this._context.sampleRate);
         const mixoutPosition = this.track.mixoutPosition;
 
@@ -166,10 +165,11 @@ export default class Track extends EventEmitter {
         // Load next time
         // If we have time to defer loading of the next track. Let's
         // give a generous 60 seconds for loading and analyzing.
-        // TODO: Account for audioCurrentTime
-        let loadNextTime = startTime + (mixoutPosition / 2);
-        if(loadNextTime > startTime + 30) {
-            loadNextTime = startTime + 30;
+        let loadNextTime = 0;
+        const duration = this._buffer.duration - this._audioCurrentTime;
+        const loadTime = 60 + this._options.mixLength;
+        if(duration > loadTime) {
+            loadNextTime = this._audioStartTime + duration - loadTime;
         }
         this.clockSchedules.loadNext = this._clock.callbackAtTime(() => {
             this.emit('loadNext', this.schedules);
@@ -183,7 +183,7 @@ export default class Track extends EventEmitter {
     mixinAt(time) {
         const startTime = time - this.track.firstPeak;
         this.play(startTime);
-        this.node.gain.setValueAtTime(0.0001, startTime - 1); // -1 to prevent split second blast at the start of a track
+        this.node.gain.setValueAtTime(0.0001, 0); // 0 to prevent split second blast at the start of a track
         const crossfadeTime = time + (this._options.mixLength / 2);
         this.node.gain.linearRampToValueAtTime(1.0, crossfadeTime);
     }
@@ -345,9 +345,17 @@ export default class Track extends EventEmitter {
      * @param  {number} position The position in time to move to
      */
     seek(position) {
-        this.pause();
+        const wasPlaying = this.playing;
+        // The track may not be loaded when asked to seek time
+        if(this.loaded) {
+            this.pause();
+        }
         this._audioCurrentTime = position;
-        this.play();
+
+        // Only resume from the new time if we were playing before
+        if(wasPlaying) {
+            this.play();
+        }
     }
 
     /**
