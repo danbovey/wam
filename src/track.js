@@ -110,7 +110,7 @@ export default class Track extends EventEmitter {
         // When to fade out the track. Scheduling entirely relies on the BPM analysis
         // returning an accurate time of a beat for scheduling everything
         // (it tends to return a time near the end of the song).
-        const mixoutTime = startTime + mixoutPosition;
+        const mixoutTime = startTime + mixoutPosition - this._audioCurrentTime;
         this.node.gain.linearRampToValueAtTime(0.0001, mixoutTime);
         this.stop(mixoutTime + 0.05); // Stop the track just after we mix out
         this.clockSchedules.mixout = this._clock.callbackAtTime(() => {
@@ -141,12 +141,12 @@ export default class Track extends EventEmitter {
         if(this.bpm && this.track.bpm && this.bpm != this.track.bpm) {
             if(this._bufferNode.playbackRate && this._bufferNode.detune) {
                 const playbackRate = this.bpm / this.track.bpm;
-                this._bufferNode.playbackRate.value = startTime + this._options.mixLength;
+                this._bufferNode.playbackRate.value = playbackRate;
                 this._bufferNode.playbackRate.setValueAtTime(playbackRate, startTime + this._options.mixLength);
                 this._bufferNode.playbackRate.linearRampToValueAtTime(1.0, startTime + this._options.mixLength + this._options.playbackRateTween);
 
                 const detune = 12 * (Math.log(playbackRate) / Math.log(2)) * 100 * (playbackRate < 1 ? -1 : 1);
-                this._bufferNode.detune.value = startTime + this._options.mixLength;
+                this._bufferNode.detune.value = detune;
                 this._bufferNode.detune.setValueAtTime(detune, startTime + this._options.mixLength);
                 this._bufferNode.detune.exponentialRampToValueAtTime(0.0001, startTime + this._options.mixLength + this._options.playbackRateTween);
             } else {
