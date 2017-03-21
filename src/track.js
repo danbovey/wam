@@ -101,8 +101,7 @@ export default class Track extends EventEmitter {
      * @todo  Accept parameters like { fadeIn, fadeOut, mix, timestretch }
      */
     _scheduleEvents() {
-        console.log({ audioStartTime: this._audioStartTime, audioCurrentTime: this._audioCurrentTime });
-        const startTime = this._audioStartTime; // - this._audioCurrentTime - this.track.firstPeak;
+        const startTime = this._audioStartTime;
         const interval = (this.track.intervalActual / this._context.sampleRate);
         const mixoutPosition = this.track.mixoutPosition;
 
@@ -127,7 +126,6 @@ export default class Track extends EventEmitter {
             mixLengthInterval += interval;
         }
         const mixinTime = mixoutTime - mixLengthInterval;
-        // console.log('Calculated mixin', { mixoutPosition, mixoutTime, estimatedInPosition, mixLengthInterval, interval, mixinTime });
         // TODO: If it's a brand new deck, no fade in
         // TODO: The gainNode may not currently be at 1.0
         this.node.gain.setValueAtTime(1.0, mixinTime);
@@ -165,7 +163,8 @@ export default class Track extends EventEmitter {
         // Load next time
         // If we have time to defer loading of the next track. Let's
         // give a generous 60 seconds for loading and analyzing.
-        let loadNextTime = 0;
+        // Default to loading in 5 seconds
+        let loadNextTime = this._context.currentTime + 5;
         const duration = this._buffer.duration - this._audioCurrentTime;
         const loadTime = 60 + this._options.mixLength;
         if(duration > loadTime) {

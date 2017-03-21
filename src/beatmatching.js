@@ -182,9 +182,6 @@ export const calculateBPM = (context, buffer) => {
                     firstPeak -= interval;
                 }
                 firstPeak = firstPeak + 0.01; // 0.01 seems to be the difference in Audacity
-                console.log('first beat calculated as:', firstPeak);
-                console.log('using calculated interval:', interval);
-                // console.log('compared to first peak found as', fp);
 
                 // Top guess is Math.round(guesses[0].tempo) BPM with guesses[0].count samples
                 return {

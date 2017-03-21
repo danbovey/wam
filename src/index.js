@@ -107,17 +107,13 @@ export default class AudioMixer extends EventEmitter {
                     if(schedules && schedules.bpm) {
                         track.setBPM(schedules.bpm);
                     }
-                    console.log(wamTrack.track.mixoutPosition, this.context.currentTime);
                 });
-        } else {
-            console.log('Nothing to schedule / Not scheduling that track yet');
         }
     }
 
     _trySchedule(track) {
         // If a track needs to be loaded up into the deck
         if(this.tracks.length == 1) {
-            console.log('Trying to schedule myself with previous info:', this.tracks[0].schedules);
             this._scheduleNext(this.tracks[0].schedules);
         }
     }
