@@ -119,12 +119,12 @@ export default class AudioMixer extends EventEmitter {
             this.playQueue.splice(0, 1);
 
             return track.load()
-                .then(emitter => {
+                .then(wamTrack => {
                     // If possible, set the BPM of the next track
                     if(schedules && schedules.bpm) {
                         track.setBPM(schedules.bpm);
                     }
-                    console.log(emitter.track.mixoutPosition, this.context.currentTime);
+                    console.log(wamTrack.track.mixoutPosition, this.context.currentTime);
                 });
         } else {
             console.log('Nothing to schedule / Not scheduling that track yet');
