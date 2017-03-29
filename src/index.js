@@ -5,6 +5,7 @@ import bufferLoader from './waa/buffer-loader';
 import Track from './track';
 
 const defaults = {
+    maxBpmDiff: 8,
     mixLength: 20,
     playbackRateTween: 60,
     volume: 1.0

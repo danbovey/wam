@@ -114,7 +114,8 @@ export default class Track extends EventEmitter {
         this.stop(mixoutTime + 0.05); // Stop the track just after we mix out
         this.clockSchedules.mixout = this._clock.callbackAtTime(() => {
             this.emit('mixout', mixoutTime);
-        }, mixoutTime);
+        }, mixoutTime)
+            .tolerance({ early: 0.1, late: 2 }); // Large tolerance as it isn't tied to audio
 
         // Mixin time
         // When to fade in the track. Schedules the start of the crossfade
@@ -131,24 +132,30 @@ export default class Track extends EventEmitter {
         this.node.gain.setValueAtTime(1.0, mixinTime);
         this.clockSchedules.mixout = this._clock.callbackAtTime(() => {
             this.emit('mixin', mixinTime);
-        }, mixinTime);
+        }, mixinTime)
+            .tolerance({ early: 0.1, late: 2 }); // Large tolerance as it isn't tied to audio
 
         // Time stretching
         // If the previous track has a different BPM, match it and ramp
         // the track back to it's original playback rate over time.
         if(this.bpm && this.track.bpm && this.bpm != this.track.bpm) {
-            if(this._bufferNode.playbackRate && this._bufferNode.detune) {
-                const playbackRate = this.bpm / this.track.bpm;
-                this._bufferNode.playbackRate.value = playbackRate;
-                this._bufferNode.playbackRate.setValueAtTime(playbackRate, startTime + this._options.mixLength);
-                this._bufferNode.playbackRate.linearRampToValueAtTime(1.0, startTime + this._options.mixLength + this._options.playbackRateTween);
+            // If the difference in BPM is too large, don't change the playback rate
+            if(this._options.maxBpmDiff > 0 && Math.abs(this.bpm - this.track.bpm) <= this._options.maxBpmDiff) {
+                if(this._bufferNode.playbackRate && this._bufferNode.detune) {
+                    const playbackRate = this.bpm / this.track.bpm;
+                    this._bufferNode.playbackRate.value = playbackRate;
+                    this._bufferNode.playbackRate.setValueAtTime(playbackRate, startTime + this._options.mixLength);
+                    this._bufferNode.playbackRate.linearRampToValueAtTime(1.0, startTime + this._options.mixLength + this._options.playbackRateTween);
 
-                const detune = 12 * (Math.log(playbackRate) / Math.log(2)) * 100 * (playbackRate < 1 ? -1 : 1);
-                this._bufferNode.detune.value = detune;
-                this._bufferNode.detune.setValueAtTime(detune, startTime + this._options.mixLength);
-                this._bufferNode.detune.exponentialRampToValueAtTime(0.0001, startTime + this._options.mixLength + this._options.playbackRateTween);
+                    const detune = 12 * (Math.log(playbackRate) / Math.log(2)) * 100 * (playbackRate < 1 ? -1 : 1);
+                    this._bufferNode.detune.value = detune;
+                    this._bufferNode.detune.setValueAtTime(detune, startTime + this._options.mixLength);
+                    this._bufferNode.detune.exponentialRampToValueAtTime(0.0001, startTime + this._options.mixLength + this._options.playbackRateTween);
+                } else {
+                    // TODO: Cross-browser pitch shifting using PV
+                }
             } else {
-                // TODO: Cross-browser pitch shifting using PV
+                console.log('BPM difference too large to mix');
             }
         }
 
@@ -172,7 +179,8 @@ export default class Track extends EventEmitter {
         }
         this.clockSchedules.loadNext = this._clock.callbackAtTime(() => {
             this.emit('loadNext', this.schedules);
-        }, loadNextTime);
+        }, loadNextTime)
+            .tolerance({ early: 1, late: 2 }); // Large tolerance as it isn't tied to audio
     }
 
     /**
