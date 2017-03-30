@@ -28,6 +28,7 @@ export default class Track extends EventEmitter {
         // Define our public track variables
         this.id = this.track.id;
         this.duration = null;
+        this.loaded = false;
         this.playing = false;
         this.context = this._context;
         this.canResume = false;
@@ -60,6 +61,7 @@ export default class Track extends EventEmitter {
                 .then(b => {
                     this._buffer = b;
                     this.duration = b.duration;
+                    this.loaded = true;
 
                     this.emit('loaded');
 
@@ -199,7 +201,7 @@ export default class Track extends EventEmitter {
      * Play the track
      * @param  {number} when When to play the track
      */
-    play(when) {
+    play(when, emit = true) {
         const now = this._context.currentTime;
         if(typeof when == 'undefined') {
             when = now;
@@ -228,7 +230,9 @@ export default class Track extends EventEmitter {
 
             this._scheduleEvents();
             this.canResume = false;
-            this.emit('playing', when);
+            if(emit) {
+                this.emit('playing', when);
+            }
         };
 
         if(when <= now) {
@@ -243,7 +247,7 @@ export default class Track extends EventEmitter {
      * @param  {number}  when When to pause the track
      * @param  {Boolean} end  Whether to destroy the track
      */
-    pause(when, end = false) {
+    pause(when, end = false, emit = true) {
         const now = this._context.currentTime;
         if(typeof when == 'undefined') {
             when = now;
@@ -268,7 +272,9 @@ export default class Track extends EventEmitter {
 
             if(!end) {
                 this.canResume = true;
-                this.emit('paused', when);
+                if(emit) {
+                    this.emit('paused', when);
+                }
             }
         };
 
@@ -355,13 +361,13 @@ export default class Track extends EventEmitter {
         const wasPlaying = this.playing;
         // The track may not be loaded when asked to seek time
         if(this.loaded) {
-            this.pause();
+            this.pause(this._context.currentTime, false, false); // Don't emit a change in playback
         }
         this._audioCurrentTime = position;
 
         // Only resume from the new time if we were playing before
         if(wasPlaying) {
-            this.play();
+            this.play(this._context.currentTime, false); // Don't emit a change in playback
         }
     }
 
