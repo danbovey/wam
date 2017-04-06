@@ -1,5 +1,4 @@
 import { EventEmitter } from 'events';
-import rightNow from 'right-now';
 import WAAClock from 'waaclock';
 import { BufferedPV } from './vendor/PhaseVocoder';
 
