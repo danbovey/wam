@@ -92,12 +92,13 @@ You can listen for events to update the UI of your application. The events are e
 
 #### Options
 
-| Option            | Default            | Description                                                            |
-|-------------------|--------------------|------------------------------------------------------------------------|
-| context           | new AudioContext() | I recommend passing in an `AudioContext` from your app                 |
-| mixLength         | 20                 | Time in seconds a track should crossfade and mix for                   |
-| playbackRateTween | 60                 | Time in seconds a track should ramp back to it's original playbackRate |
-| volume            | 1.0                | Initial value of the gainNode                                          |
+| Option            | Default            | Description                                                                  |
+|-------------------|--------------------|------------------------------------------------------------------------------|
+| context           | new AudioContext() | I recommend passing in an `AudioContext` from your app                       |
+| maxBpmDiff        | 8                  | Maximum BPM difference between two tracks for the playbackRate to be changed |
+| mixLength         | 20                 | Time in seconds a track should crossfade and mix for                         |
+| playbackRateTween | 60                 | Time in seconds a track should ramp back to it's original playbackRate       |
+| volume            | 1.0                | Initial value of the gainNode                                                |
 
 ## Final Year Project
 
