@@ -6,7 +6,6 @@
  */
 
 // The sampleSize sets the max amount of parts to process
-// 60 would give us 
 const sampleSize = 60;
 
 /**
@@ -124,8 +123,6 @@ export const calculateBPM = (context, buffer) => {
     // Place the buffer into a new offline context for processing
     const OfflineContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
 
-    // TODO: buffer.length is the length of the whole song, so it takes longer to process
-    // this should be a shorter sample size of 20-30 seconds, midway through the song
     const offlineContext = new OfflineContext(2, buffer.length, buffer.sampleRate);
     const source = offlineContext.createBufferSource();
     source.buffer = buffer;
@@ -169,34 +166,27 @@ export const calculateBPM = (context, buffer) => {
                 const first = peaks.all.sort((a, b) => a.position - b.position)[0];
                 const lastPeak = guesses[0].allPositions[guesses[0].allPositions.length - 1];
                 const mixoutPosition = lastPeak / context.sampleRate;
-                // const firstPeak = first.position / context.sampleRate;
 
                 let firstPeak = guesses[0].allPositions[0] / context.sampleRate;
-                // const fp = firstPeak;
                 const interval = guesses[0].intervalActual / context.sampleRate;
-                // while(firstPeak - interval > 0) {
-                //     firstPeak -= interval;
-                // }
-                firstPeak = mixoutPosition; // Let's try going back from a known "on beat" drum hit!
+                // Let's try going back from a known "on beat" drum hit!
+                firstPeak = mixoutPosition;
                 while(firstPeak - interval > 0) {
                     firstPeak -= interval;
                 }
-                firstPeak = firstPeak + 0.01; // 0.01 seems to be the difference in Audacity
 
-                // Top guess is Math.round(guesses[0].tempo) BPM with guesses[0].count samples
-                return {
+                resolve({
                     bpm: guesses[0].tempo,
                     count: guesses[0].count,
-                    top: guesses[0], // TODO: Replace bpm, count with this
-                    // others: guesses.slice(1),
+                    top: guesses[0],
                     first,
                     all: peaks.all,
                     mixoutPosition,
                     firstPeak,
                     guesses
-                };
+                });
             } else {
-                throw new Error('No guess');
+                reject('No guess');
             }
         };
     });

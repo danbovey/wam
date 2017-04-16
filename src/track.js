@@ -21,7 +21,8 @@ export default class Track extends EventEmitter {
         // Define our Audio nodes
         this._bufferNode = null;
         this._buffer = null;
-        this.node = this._context.createGain(); // Pass through the node so the user can use .connect()
+        // Pass through the node so the user can use .connect()
+        this.node = this._context.createGain();
         this._pv = new BufferedPV(FRAME_SIZE);
 
         // Define our public track variables
@@ -112,11 +113,13 @@ export default class Track extends EventEmitter {
         // (it tends to return a time near the end of the song).
         const mixoutTime = startTime + mixoutPosition - this._audioCurrentTime;
         this.node.gain.linearRampToValueAtTime(0.0001, mixoutTime);
-        this.stop(mixoutTime + 0.05); // Stop the track just after we mix out
+        // Stop the track just after we mix out
+        this.stop(mixoutTime + 0.05);
+        // Large tolerance as it isn't tied to audio
         this.clockSchedules.mixout = this._clock.callbackAtTime(() => {
             this.emit('mixout', mixoutTime);
         }, mixoutTime)
-            .tolerance({ early: 0.1, late: 2 }); // Large tolerance as it isn't tied to audio
+        .tolerance({ early: 0.1, late: 2 });
 
         // Mixin time
         // When to fade in the track. Schedules the start of the crossfade
@@ -131,10 +134,11 @@ export default class Track extends EventEmitter {
         // TODO: If it's a brand new deck, no fade in
         // TODO: The gainNode may not currently be at 1.0
         this.node.gain.setValueAtTime(1.0, mixinTime);
+        // Large tolerance as it isn't tied to audio
         this.clockSchedules.mixout = this._clock.callbackAtTime(() => {
             this.emit('mixin', mixinTime);
         }, mixinTime)
-            .tolerance({ early: 0.1, late: 2 }); // Large tolerance as it isn't tied to audio
+        .tolerance({ early: 0.1, late: 2 });
 
         // Time stretching
         // If the previous track has a different BPM, match it and ramp
@@ -178,10 +182,11 @@ export default class Track extends EventEmitter {
         if(duration > loadTime) {
             loadNextTime = this._audioStartTime + duration - loadTime;
         }
+        // Large tolerance as it isn't tied to audio
         this.clockSchedules.loadNext = this._clock.callbackAtTime(() => {
             this.emit('loadNext', this.schedules);
         }, loadNextTime)
-            .tolerance({ early: 1, late: 2 }); // Large tolerance as it isn't tied to audio
+        .tolerance({ early: 1, late: 2 });
     }
 
     /**
@@ -360,13 +365,15 @@ export default class Track extends EventEmitter {
         const wasPlaying = this.playing;
         // The track may not be loaded when asked to seek time
         if(this.loaded) {
-            this.pause(this._context.currentTime, false, false); // Don't emit a change in playback
+            // Don't emit a change in playback
+            this.pause(this._context.currentTime, false, false);
         }
         this._audioCurrentTime = position;
 
         // Only resume from the new time if we were playing before
         if(wasPlaying) {
-            this.play(this._context.currentTime, false); // Don't emit a change in playback
+            // Don't emit a change in playback
+            this.play(this._context.currentTime, false);
         }
     }
 
