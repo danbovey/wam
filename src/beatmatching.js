@@ -146,7 +146,10 @@ export const calculateBPM = (context, buffer) => {
     highpass.connect(offlineContext.destination);
 
     source.start(0);
+
     return new Promise((resolve, reject) => {
+        offlineContext.startRendering();
+        
         offlineContext.oncomplete = ({ renderedBuffer}) => {
             const peaks = getPeaks(context, [renderedBuffer.getChannelData(0), renderedBuffer.getChannelData(1)]);
             const groups = getIntervals(context, peaks.peaks);
