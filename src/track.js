@@ -180,6 +180,7 @@ export default class Track extends EventEmitter {
         const duration = this._buffer.duration - this._audioCurrentTime;
         const loadTime = 60 + this._options.mixLength;
         if(duration > loadTime) {
+            // The time the next track will start - 60
             loadNextTime = this._audioStartTime + duration - loadTime;
         }
         // Large tolerance as it isn't tied to audio
@@ -327,6 +328,7 @@ export default class Track extends EventEmitter {
 
         this.playing = false;
         this.connected = false;
+        this._bufferNode.disconnect();
         this.node.disconnect();
     }
 
@@ -343,6 +345,7 @@ export default class Track extends EventEmitter {
         this.disconnect();
 
         this._buffer = null;
+        this._bufferNode = null;
     }
 
     /**

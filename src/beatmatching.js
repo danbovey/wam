@@ -149,7 +149,6 @@ export const calculateBPM = (context, buffer) => {
 
     return new Promise((resolve, reject) => {
         offlineContext.startRendering();
-        
         offlineContext.oncomplete = ({ renderedBuffer}) => {
             const peaks = getPeaks(context, [renderedBuffer.getChannelData(0), renderedBuffer.getChannelData(1)]);
             const groups = getIntervals(context, peaks.peaks);
